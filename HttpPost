@@ -1,0 +1,128 @@
+import java.net.URL
+import java.net.HttpURLConnection
+import java.io.OutputStreamWriter
+import com.boomi.execution.ExecutionUtil;
+import groovy.json.JsonSlurper
+
+
+
+logger = ExecutionUtil.getBaseLogger();
+
+//-------------------------
+
+String SAP_CLOUD_ENABLED =ExecutionUtil.getDynamicProcessProperty("SAP_CLOUD_ENABLED");
+String MAXIMO_CLOUD_ENABLED =ExecutionUtil.getDynamicProcessProperty("MAXIMO_CLOUD_ENABLED");
+String HTTP =ExecutionUtil.getDynamicProcessProperty("HTTP");
+String APM_APP_SERVER =ExecutionUtil.getDynamicProcessProperty("APM_APP_SERVER");
+String G2DL_APM_LOGIN_URL =ExecutionUtil.getDynamicProcessProperty("G2DL_APM_LOGIN_URL");
+
+boolean ENABLE_G2DL_INGESTION =ExecutionUtil.getDynamicProcessProperty("ENABLE_G2DL_INGESTION");
+String APM_LOGIN_URL="";
+
+logger.info("============================INSIDE G2DL_REGISTER_BUNDLE================================================");
+logger.info("ENABLE_G2DL_INGESTION ::::"+ENABLE_G2DL_INGESTION+"|APM_APP_SERVER::"+APM_APP_SERVER);
+logger.info("SAP_CLOUD_ENABLED Value   :::: "+SAP_CLOUD_ENABLED);
+logger.info("MAXIMO_CLOUD_ENABLED  Value :::: "+MAXIMO_CLOUD_ENABLED);
+logger.info("G2DL_APM_LOGIN_URL ::::"+G2DL_APM_LOGIN_URL);
+
+
+
+if(ENABLE_G2DL_INGESTION){
+
+	if ((SAP_CLOUD_ENABLED != null && !SAP_CLOUD_ENABLED.isEmpty() && !SAP_CLOUD_ENABLED.equals("") && SAP_CLOUD_ENABLED.contains("true")) || (MAXIMO_CLOUD_ENABLED != null && !MAXIMO_CLOUD_ENABLED.isEmpty() && !MAXIMO_CLOUD_ENABLED.equals("") && MAXIMO_CLOUD_ENABLED.contains("true"))) 
+{
+         logger.info("Inside If .......");
+
+		APM_LOGIN_URL=HTTP + APM_APP_SERVER+G2DL_APM_LOGIN_URL;
+		logger.info("APM_LOGIN_URL  Value :::: "+APM_LOGIN_URL);
+		}
+	else{
+	       logger.info("Inside Else... SAP/MAXIMO CLOUD ENABLED is false .......");
+		APM_LOGIN_URL=HTTP + APM_APP_SERVER+ "/meridium"+G2DL_APM_LOGIN_URL;
+		logger.info("APM_LOGIN_URL  Value :::: "+APM_LOGIN_URL);
+	}
+	logger.info("Calling G2DL APM LOGIN ... "+APM_LOGIN_URL);
+}
+else {
+	logger.info("Calling APM LOGIN ... "+HTTP + APM_APP_SERVER +APM_LOGIN_URL);
+	APM_LOGIN_URL=HTTP + APM_APP_SERVER +APM_LOGIN_URL ;
+}
+
+
+
+//----------------------------
+
+
+//String G2DL_APM_LOGIN_URL =ExecutionUtil.getDynamicProcessProperty("G2DL_APM_LOGIN_URL");
+
+String APM_DATASOURCE =ExecutionUtil.getDynamicProcessProperty("APM_DATASOURCE");
+String APM_USERID =ExecutionUtil.getDynamicProcessProperty("APM_USERID");
+String APM_PASSWORD =ExecutionUtil.getDynamicProcessProperty("APM_PASSWORD");
+
+//String HTTP =ExecutionUtil.getDynamicProcessProperty("HTTP");
+
+//String G2DL_MERIDIUM_TOKEN_URL = HTTP +APM_API_APP_SERVER+G2DL_APM_LOGIN_URL
+
+// Define the REST API endpoint URL
+//def url = new URL("http://roaqavm12.meridium.com/meridium/api/v1/core/security/login")
+def url = new URL(APM_LOGIN_URL)
+
+// Set the request headers
+def headers = [
+    "Accept": "application/json",
+    "Content-Type": "application/json"
+]
+
+// Set the request body
+//"DatasourceId": "V5000000_TEST_MON_SQL19",
+//"Id": "bl",
+//    "Password": "bl"
+def requestBody = [
+    "DatasourceId": APM_DATASOURCE,
+    "Id": APM_USERID,
+    "Password": APM_PASSWORD
+]
+
+// Create an HTTP connection and configure it
+HttpURLConnection conn = url.openConnection() as HttpURLConnection
+conn.setRequestMethod("POST")
+headers.each { key, value -> conn.setRequestProperty(key, value) }
+conn.setDoOutput(true)
+
+// Send the request body to the REST API
+OutputStreamWriter wr = new OutputStreamWriter(conn.getOutputStream())
+wr.write(new groovy.json.JsonBuilder(requestBody).toString())
+wr.flush()
+wr.close()
+
+
+// Read the response from the REST API
+def responseCode = conn.getResponseCode()
+def responseMessage = conn.getResponseMessage()
+def responseBody = conn.getInputStream().getText()
+
+// Parse the response body as a JSON object and extract the value of the sessionId attribute
+def jsonSlurper = new JsonSlurper()
+def jsonResponse = jsonSlurper.parseText(responseBody)
+//String sessionId = jsonResponse.sessionId;
+
+def sessionId = jsonResponse.sessionId
+
+ExecutionUtil.setDynamicProcessProperty("Mtoken",sessionId,false);
+
+
+
+//logger.info("Processing file : " +ExecutionUtil.getDynamicProcessProperty("EQUI_CONFIG_FILE_PATH"));
+
+logger.info("......Meridium Token Generated is ....  : " +ExecutionUtil.getDynamicProcessProperty("Mtoken"));
+
+
+// Print the response to the console
+//logger.info("Response code: "+responseCode);
+//logger.info("Response code: ");
+//logger.info(responseCode);
+logger.info("responseMessage code: "+responseMessage);
+logger.info("sessionId : "+sessionId);
+logger.info("responseBody code: "+responseBody);
+//println "Response message: ${responseMessage}"
+//println "Response body: ${responseBody}"
