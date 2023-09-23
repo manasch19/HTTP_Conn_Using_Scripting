@@ -1,0 +1,73 @@
+import java.net.HttpURLConnection
+import java.net.URL
+import java.net.URLEncoder
+import java.io.File
+import java.io.IOException
+import com.boomi.execution.ExecutionUtil;
+
+logger = ExecutionUtil.getBaseLogger();
+
+//http://maximo76.meridium.com:9080/maxrest/rest/os/MIASSET?_lang=EN&_format=json&_compact=1&_maxItems=10&_rsStart=0&_uw=SITEID IN('BEDFORD')
+// API endpoint
+def url = new URL("http://maximo76.meridium.com:9080/maxrest/rest/os/MIASSET")
+
+// Query parameters
+def params = [
+    _lang: "EN",
+	_WHERE: "((CHANGEDATE BETWEEN ('2019-01-01 00:00:00') AND ('2023-12-08 00:00:00'))) AND (SITEID LIKE 'BEDFORD')"
+]
+
+// Basic authentication credentials
+def username = "maxadmin"
+def password = "maxadmin"
+
+// Connection timeout
+def timeout = 10000 // milliseconds
+
+try {
+    // Set basic authentication credentials
+    def authString = "${username}:${password}"
+    def authHeaderValue = "Basic " + authString.bytes.encodeBase64().toString()
+
+    // Construct the URL with query parameters
+    def queryString = params.collect { k, v -> "${URLEncoder.encode(k, 'UTF-8')}=${URLEncoder.encode(v, 'UTF-8')}" }.join('&')
+    def queryURL = new URL(url.toString() + "?" + queryString)
+
+    // Open a connection to the URL
+    def connection = queryURL.openConnection() as HttpURLConnection
+
+    // Set the connection timeout
+    connection.connectTimeout = timeout
+
+    // Set the request method and headers
+    connection.requestMethod = "GET"
+    connection.setRequestProperty("Authorization", authHeaderValue)
+
+    // Make the GET request
+    connection.connect()
+
+    // Get the response code
+    def responseCode = connection.responseCode
+
+    // Ensure the response is successful
+    if (responseCode == HttpURLConnection.HTTP_OK) {
+        // Read the response
+        def response = connection.inputStream.text
+
+        // Save the response to a file
+        def file = new File("\\\\na-talend-16.meridium.com\\A1\\response.txt")
+        file.write(response)
+
+        println "Response saved to response.txt"
+    } else {
+        println "Request failed. Response Code: $responseCode"
+    }
+
+logger.info("connection.responseCode : "+connection.responseCode);
+logger.info("connection.inputStream.text: "+connection.inputStream.text);
+
+    // Disconnect the connection
+    connection.disconnect()
+} catch (IOException e) {
+    println "Error making the request: ${e.getMessage()}"
+}
