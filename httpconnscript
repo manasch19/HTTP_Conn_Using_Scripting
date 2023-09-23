@@ -1,0 +1,72 @@
+import java.io.BufferedReader
+import java.io.InputStreamReader
+import java.net.HttpURLConnection
+import java.net.URL
+import java.util.Base64
+import com.boomi.execution.ExecutionUtil;
+
+logger = ExecutionUtil.getBaseLogger();
+
+def MAXIMO_RS_START = 0
+def RS_COUNT = 1000
+def MAXIMO_RS_COUNT = 10
+def  MAXIMO_WHERECONDITION = "SITEID IN('BEDFORD')"
+def context_MAXIMO_REST_INTERFACE_NAME = "MIMERIDIUMWS"
+def CHANGEDATE_START='2020-03-01'
+def CHANGEDATE_END='2020-03-31'
+
+
+// Set the URL of the REST API endpoint
+String apiUrl = "http://maximo76.meridium.com:9080/maxrest/rest/os/MIASSET?"
+
+// Set the query parameters
+//String queryParameters = "_lang=E"
+
+//String queryParameters = "param1="value1&param2=value2""_lang=EN&_format=json&_compact=1&_maxItems="+MAXIMO_RS_COUNT+"&_rsStart="+MAXIMO_RS_START+"&_CHANGEDATE="+CHANGEDATE_START+"&_CHANGEDATE="+CHANGEDATE_END+"&_uw="+MAXIMO_WHERECONDITION
+
+//String queryParameters ="_lang=EN&_format=json&_compact=1&_maxItems="+MAXIMO_RS_COUNT+"&_rsStart="+MAXIMO_RS_START+"&_uw="+MAXIMO_WHERECONDITION;
+
+//String queryParameters ="_lang=EN&_format=json&_compact=1&_maxItems="+MAXIMO_RS_COUNT+"&_rsStart="+MAXIMO_RS_START+"&_CHANGEDATE="+CHANGEDATE_START+"&_CHANGEDATE="+CHANGEDATE_END;
+
+//String queryParameters ="_lang=EN&_format=json&_compact=1&_maxItems="+MAXIMO_RS_COUNT+"&_rsStart="+MAXIMO_RS_START+"&_CHANGEDATE="+CHANGEDATE_START+"&_CHANGEDATE="+CHANGEDATE_END+"&_uw="+MAXIMO_WHERECONDITION;
+
+String queryParameters ="&_WHERE="+MAXIMO_WHERECONDITION;
+	logger.info("queryParameters : "+queryParameters);
+
+// Set basic authentication credentials
+String username = "maxadmin"
+String password = "maxadmin"
+
+
+    // Build the complete URL with query parameters
+    URL url = new URL(apiUrl + queryParameters)
+	
+	
+logger.info("apiUrl queryParameters : "+(apiUrl+queryParameters));	
+   // URL url = new URL(apiUrl)
+    HttpURLConnection conn = (HttpURLConnection) url.openConnection()
+    conn.setRequestMethod("GET")
+
+    // Set request headers and properties
+    conn.setRequestProperty("Content-Type", "application/xml")
+    conn.setRequestProperty("Accept", "application/xml")
+
+    // Set basic authentication
+    String authString = "${username}:${password}"
+    String encodedAuthString = Base64.getEncoder().encodeToString(authString.getBytes())
+    conn.setRequestProperty("Authorization", "Basic ${encodedAuthString}")
+
+    // Get the response
+    int responseCode = conn.getResponseCode()
+	
+		logger.info("responseCode : "+responseCode);
+	
+	def responseMessage = conn.getResponseMessage()
+	def responseBody = conn.getInputStream().getText()
+	
+	logger.info("responseMessage code: "+responseMessage);
+//logger.info("sessionId : "+sessionId);
+logger.info("responseBody code: "+responseBody);
+	
+	
+   
